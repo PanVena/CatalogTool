@@ -8,6 +8,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <Target Name="SetNoBuild">
@@ -17,8 +18,11 @@
   </Target>
   <Target Name="PublishAfterBuild" AfterTargets="AfterBuild" DependsOnTargets="SetNoBuild;Publish" />
   <Target Name="CleanAfterBuild" AfterTargets="AfterClean">
-    <RemoveDir Directories="$(PublishDir)" Condition="'$(PublishDir)' != ''"/>
+    <RemoveDir Directories="$(PublishDir)" Condition="'$(PublishDir)' != ''" />
   </Target>
+  <ItemGroup>
+    <Content Include="app.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AddressablesTools\AddressablesTools.csproj" />

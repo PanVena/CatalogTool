@@ -151,7 +151,7 @@ static void ExtractAssetList(string path, ContentCatalogData ccd, bool fromBundl
         {
             if (loc[0].Data is WrappedSerializedObject { Object: AssetBundleRequestOptions abro })
             {
-                bundleHashes.TryAdd("0#/"+ loc[0].PrimaryKey, abro.Hash);
+                bundleHashes.TryAdd("0#/" + loc[0].PrimaryKey, abro.Hash);
             }
         }
     }
@@ -191,7 +191,7 @@ static void ExtractAssetList(string path, ContentCatalogData ccd, bool fromBundl
     var orderedHashes = bundleHashes.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
 
     var hashesJSON = JsonSerializer.Serialize(orderedHashes, new JsonSerializerOptions() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-    using (StreamWriter writer = new StreamWriter(path.Replace(".json", "").Replace(".bundle", "")+"_hash.json"))
+    using (StreamWriter writer = new StreamWriter(path.Replace(".json", "").Replace(".bundle", "") + "_hash.json"))
     {
         writer.Write(hashesJSON);
     }
@@ -208,16 +208,59 @@ static void ExtractAssetList(string path, ContentCatalogData ccd, bool fromBundl
     Console.WriteLine(assetList.Count);
 }
 
-if (args.Length < 1)
+if (args.Length == 1)
 {
-    Console.WriteLine("need args: <mode> <file>");
-    Console.WriteLine("modes: search, patch, extract");
+    var path = args[0];
+
+    if (!File.Exists(path))
+    {
+        Console.WriteLine("catalog file not found!");
+        return;
+    }
+
+    if (!string.Equals(Path.GetFileName(path), "catalog.json", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine("only catalog.json is supported for drag&drop!");
+        return;
+    }
+
+    bool fromBundle = IsUnityFS(path);
+
+    ContentCatalogData ccd;
+    CatalogFileType fileType = CatalogFileType.None;
+    if (fromBundle)
+    {
+        ccd = AddressablesCatalogFileParser.FromBundle(path);
+    }
+    else
+    {
+        using (FileStream fs = File.OpenRead(path))
+        {
+            fileType = AddressablesCatalogFileParser.GetCatalogFileType(fs);
+        }
+
+        switch (fileType)
+        {
+            case CatalogFileType.Json:
+                ccd = AddressablesCatalogFileParser.FromJsonString(File.ReadAllText(path));
+                break;
+            case CatalogFileType.Binary:
+                ccd = AddressablesCatalogFileParser.FromBinaryData(File.ReadAllBytes(path));
+                break;
+            default:
+                Console.WriteLine("not a valid catalog file");
+                return;
+        }
+    }
+
+    PatchCrc(path, ccd, fromBundle);
     return;
 }
 
 if (args.Length < 2)
 {
-    Console.WriteLine("Where is your catalog path?");
+    Console.WriteLine("need args: <mode> <file>");
+    Console.WriteLine("modes: search, patch, extract");
     return;
 }
 
@@ -228,30 +271,30 @@ if (!File.Exists(args[1]))
 }
 
 var mode = args[0];
-var path = args[1];
+var catalogPath = args[1];
 
-bool fromBundle = IsUnityFS(path);
+bool fromBundleMain = IsUnityFS(catalogPath);
 
-ContentCatalogData ccd;
-CatalogFileType fileType = CatalogFileType.None;
-if (fromBundle)
+ContentCatalogData ccdMain;
+CatalogFileType fileTypeMain = CatalogFileType.None;
+if (fromBundleMain)
 {
-    ccd = AddressablesCatalogFileParser.FromBundle(path);
+    ccdMain = AddressablesCatalogFileParser.FromBundle(catalogPath);
 }
 else
 {
-    using (FileStream fs = File.OpenRead(path))
+    using (FileStream fs = File.OpenRead(catalogPath))
     {
-        fileType = AddressablesCatalogFileParser.GetCatalogFileType(fs);
+        fileTypeMain = AddressablesCatalogFileParser.GetCatalogFileType(fs);
     }
 
-    switch (fileType)
+    switch (fileTypeMain)
     {
         case CatalogFileType.Json:
-            ccd = AddressablesCatalogFileParser.FromJsonString(File.ReadAllText(path));
+            ccdMain = AddressablesCatalogFileParser.FromJsonString(File.ReadAllText(catalogPath));
             break;
         case CatalogFileType.Binary:
-            ccd = AddressablesCatalogFileParser.FromBinaryData(File.ReadAllBytes(path));
+            ccdMain = AddressablesCatalogFileParser.FromBinaryData(File.ReadAllBytes(catalogPath));
             break;
         default:
             Console.WriteLine("not a valid catalog file");
@@ -261,15 +304,15 @@ else
 
 if (mode == "search")
 {
-    SearchAsset(path, ccd, fromBundle);
+    SearchAsset(catalogPath, ccdMain, fromBundleMain);
 }
 else if (mode == "patch")
 {
-    PatchCrc(path, ccd, fromBundle);
+    PatchCrc(catalogPath, ccdMain, fromBundleMain);
 }
 else if (mode == "extract")
 {
-    ExtractAssetList(path, ccd, fromBundle);
+    ExtractAssetList(catalogPath, ccdMain, fromBundleMain);
 }
 else
 {

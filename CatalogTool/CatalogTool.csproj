@@ -5,7 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <ApplicationIcon>app.ico</ApplicationIcon>
@@ -16,15 +16,6 @@
     <Authors></Authors>
   </PropertyGroup>
 
-  <Target Name="SetNoBuild">
-    <PropertyGroup>
-      <NoBuild>true</NoBuild>
-    </PropertyGroup>
-  </Target>
-  <Target Name="PublishAfterBuild" AfterTargets="AfterBuild" DependsOnTargets="SetNoBuild;Publish" />
-  <Target Name="CleanAfterBuild" AfterTargets="AfterClean">
-    <RemoveDir Directories="$(PublishDir)" Condition="'$(PublishDir)' != ''" />
-  </Target>
   <ItemGroup>
     <Content Include="app.ico" />
   </ItemGroup>
